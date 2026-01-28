@@ -2,12 +2,16 @@
 NAME    = kfs
 
 # ===== SOURCES =====
-SRC_C   = kernel.c
-SRC_S   = boot.s
+SRC_C   =	kernel.c \
+			terminal.c \
+			utils.c \
+			keyboard.c \
+
+SRC_S   =	boot.s \
 
 # ===== DIRECTORIES =====
-SRC_DIR =
-INC_DIR =
+SRC_DIR = src
+INC_DIR = inc
 OBJ_DIR = obj/
 DEP_DIR = dep/
 
@@ -40,10 +44,13 @@ all: $(OBJ_DIR) $(DEP_DIR) $(NAME)
 $(NAME): $(OBJ)
 	$(CC) $(LDFLAGS) $^ -o $@ $(LIBS)
 
+qemu: $(NAME)
+	qemu-system-i386 -kernel kfs
+
 $(OBJ_DIR)%.o: %.c
 	@mkdir -p $(OBJ_DIR)$(dir $<)
 	@mkdir -p $(DEP_DIR)$(dir $<)
-	$(CC) $(CFLAGS) -MMD -MP -MF $(DEP_DIR)$*.d -c $< -o $@
+	$(CC) $(CFLAGS) -I $(INC_DIR) -MMD -MP -MF $(DEP_DIR)$*.d -c $< -o $@
 
 $(OBJ_DIR)%.o: %.s
 	@mkdir -p $(OBJ_DIR)$(dir $<)
