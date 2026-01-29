@@ -1,11 +1,13 @@
 #include "terminal.h"
 #include "keyboard.h"
+#include "printk.h"
 
 void kernel_main(void) {
     terminal_init();
-    terminal_write_str("42\n");
+    printk("%s\n", "42");
 
     while (1) {
+        terminal_flush();
         keyboard_handler();
     }
 }

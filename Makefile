@@ -6,6 +6,8 @@ SRC_C   =	kernel.c \
 			terminal.c \
 			utils.c \
 			keyboard.c \
+			printk.c \
+			cursor.c \
 
 SRC_S   =	boot.s \
 

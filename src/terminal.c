@@ -1,83 +1,87 @@
 #include "terminal.h"
-#include "io.h"
 
-/* VGA constants */
-#define VGA_WIDTH   80
-#define VGA_HEIGHT  25
-#define VGA_MEMORY  0xB8000
+static uint16_t* vga_buffer = (uint16_t*)VGA_MEMORY;
+static terminal_t terminals[MAX_TERMINALS];
+static int active_terminal = 0;
 
-/* VGA helpers */
-static inline uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg) {
-    return fg | bg << 4;
+static terminal_t *current_terminal(void) {
+    return &terminals[active_terminal];
 }
 
-static inline uint16_t vga_entry(unsigned char uc, uint8_t color) {
-    return (uint16_t) uc | (uint16_t) color << 8;
+static inline int write_line(terminal_t *t) {
+    return t->total_lines - VGA_HEIGHT + t->cursor_y;
 }
 
-static inline void move_cursor(size_t row, size_t column) {
-    uint16_t pos = row * VGA_WIDTH + column;
-
-    outb(0x3D4, 0x0E);
-    outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
-
-    outb(0x3D4, 0x0F);
-    outb(0x3D5, (uint8_t)(pos & 0xFF));
+static void clear_line(char *line) {
+    for (int i = 0; i < VGA_WIDTH; i++)
+        line[i] = ' ';
 }
 
-/* Terminal state */
-static size_t terminal_row;
-static size_t terminal_column;
-static uint8_t terminal_color;
-static uint16_t* terminal_buffer = (uint16_t*)VGA_MEMORY;
+static void terminal_render(void) {
+    terminal_t *t = current_terminal();
+
+    for (int y = 0; y < VGA_HEIGHT; y++) {
+        int line = t->view_offset + y;
+
+        for (int x = 0; x < VGA_WIDTH; x++) {
+            char c = ' ';
+            if (line < t->total_lines)
+                c = t->buffer[line][x];
+
+            vga_buffer[y * VGA_WIDTH + x] =
+                vga_entry(c, t->color);
+        }
+    }
+    cursor_move(t->cursor_x, t->cursor_y);
+}
+
+static void terminal_newline_handler(void) {
+    terminal_t *t = current_terminal();
+
+    t->cursor_x = 0;
+    t->cursor_y++;
+    t->total_lines++;
+
+    if (t->total_lines >= MAX_LINES)
+        t->total_lines = MAX_LINES - 1;
+
+    if (t->cursor_y >= VGA_HEIGHT) {
+        t->view_offset++;
+        t->cursor_y = VGA_HEIGHT - 1;
+    }
+
+    clear_line(t->buffer[t->total_lines - 1]);
+}
 
 void terminal_init(void) {
-    terminal_row = 0;
-    terminal_column = 0;
-    terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-    for (size_t y = 0; y < VGA_HEIGHT; y++) {
-        for (size_t x = 0; x < VGA_WIDTH; x++) {
-            const size_t index = y * VGA_WIDTH + x;
-            terminal_buffer[index] = vga_entry(' ', terminal_color);
-        }
+    for (int i = 0; i < MAX_TERMINALS; i++) {
+        terminal_t *t = &terminals[i];
+
+        t->total_lines = 1;
+        t->view_offset = 0;
+        t->cursor_x = 0;
+        t->cursor_y = 0;
+        t->color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+
+        for (int y = 0; y < MAX_LINES; y++)
+            clear_line(t->buffer[y]);
+        t->change = 1;
     }
 }
 
-void    terminal_setcolor(uint8_t color) {
-    terminal_color = color;
-}
+void terminal_putchar(char c) {
+    terminal_t *t = current_terminal();
 
-static void terminal_scroll(void) {
-    for (size_t y = 1; y < VGA_HEIGHT; y++) {
-        for (size_t x = 0; x < VGA_WIDTH; x++) {
-            terminal_buffer[(y - 1) * VGA_WIDTH + x] = terminal_buffer[y * VGA_WIDTH + x];
-        }
-    }
-
-    size_t last_row = VGA_HEIGHT - 1;
-    for (size_t x = 0; x < VGA_WIDTH; x++) {
-        terminal_buffer[last_row * VGA_WIDTH + x] = vga_entry(' ', terminal_color);
-    }
-
-    terminal_row = VGA_HEIGHT - 1;
-    terminal_column = 0;
-}
-
-void    terminal_putchar(char c) {
     if (c == '\n') {
-        terminal_column = 0;
-        if (++terminal_row == VGA_HEIGHT)
-            terminal_scroll();
+        terminal_newline_handler();
     }
     else {
-        terminal_buffer[terminal_row * VGA_WIDTH + terminal_column] = vga_entry(c, terminal_color);
-        if (++terminal_column == VGA_WIDTH) {
-            terminal_column = 0;
-            if (++terminal_row == VGA_HEIGHT)
-                terminal_scroll();
-        }
+        t->buffer[t->view_offset + t->cursor_y][t->cursor_x] = c;
+        t->cursor_x++;
+        if (t->cursor_x >= VGA_WIDTH)
+            terminal_newline_handler();
     }
-    move_cursor(terminal_row, terminal_column);
+    t->change = 1;
 }
 
 void terminal_write(const char* data, size_t size) {
@@ -87,4 +91,41 @@ void terminal_write(const char* data, size_t size) {
 
 void terminal_write_str(const char* data) {
     terminal_write(data, strlen(data));
+}
+
+void terminal_scroll_up(void) {
+    terminal_t *t = current_terminal();
+    if (t->view_offset > 0) {
+        t->view_offset--;
+        t->change = 1;
+    }
+}
+
+void terminal_scroll_down(void) {
+    terminal_t *t = current_terminal();
+    if (t->view_offset + VGA_HEIGHT < t->total_lines) {
+        t->view_offset++;
+        t->change = 1;
+    }
+}
+
+void terminal_switch(int index) {
+    if (index < 0 || index >= MAX_TERMINALS)
+        return;
+
+    active_terminal = index;
+    terminals[index].change = 1;
+}
+
+void    terminal_setcolor(enum vga_color fg, enum vga_color bg) {
+    terminal_t *t = current_terminal();
+    t->color = vga_entry_color(fg, bg);
+}
+
+void terminal_flush(void) {
+    terminal_t *t = current_terminal();
+    if (!t->change)
+        return;
+    terminal_render();
+    t->change = 0;
 }

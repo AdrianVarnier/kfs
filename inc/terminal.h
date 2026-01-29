@@ -3,33 +3,32 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "vga.h"
+#include "cursor.h"
+#include "io.h"
 #include "utils.h"
 
-/* VGA colors */
-enum vga_color {
-    VGA_COLOR_BLACK = 0,
-    VGA_COLOR_BLUE = 1,
-    VGA_COLOR_GREEN = 2,
-    VGA_COLOR_CYAN = 3,
-    VGA_COLOR_RED = 4,
-    VGA_COLOR_MAGENTA = 5,
-    VGA_COLOR_BROWN = 6,
-    VGA_COLOR_LIGHT_GREY = 7,
-    VGA_COLOR_DARK_GREY = 8,
-    VGA_COLOR_LIGHT_BLUE = 9,
-    VGA_COLOR_LIGHT_GREEN = 10,
-    VGA_COLOR_LIGHT_CYAN = 11,
-    VGA_COLOR_LIGHT_RED = 12,
-    VGA_COLOR_LIGHT_MAGENTA = 13,
-    VGA_COLOR_LIGHT_BROWN = 14,
-    VGA_COLOR_WHITE = 15,
-};
+#define MAX_TERMINALS   3
+#define MAX_LINES       256
 
-/* Terminal API */
+typedef struct terminal {
+    char buffer[MAX_LINES][VGA_WIDTH];
+    int total_lines;
+    int view_offset;
+    int cursor_x;
+    int cursor_y;
+    int change;
+    uint8_t color;
+} terminal_t;
+
 void terminal_init(void);
-void terminal_setcolor(uint8_t color);
 void terminal_putchar(char c);
 void terminal_write(const char* data, size_t size);
 void terminal_write_str(const char* data);
+void terminal_scroll_up(void);
+void terminal_scroll_down(void);
+void terminal_switch(int index);
+void terminal_setcolor(enum vga_color fg, enum vga_color bg);
+void terminal_flush(void);
 
 #endif
