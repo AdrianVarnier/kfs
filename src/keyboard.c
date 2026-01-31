@@ -2,6 +2,7 @@
 
 static bool ctrl_pressed = false;
 static bool shift_pressed = false;
+static bool alt_pressed = false;
 
 static char qwerty[128] = {
     0,  27, '1','2','3','4','5','6','7','8','9','0','-','=', '\b',
@@ -37,10 +38,11 @@ void    keyboard_handler(void) {
     
     uint8_t scancode = inb(KEYBOARD_DATA_PORT);
     char c = 0;
-    if (shift_pressed)
+    if (shift_pressed) {
         c = scancode_to_ascii(scancode, qwerty_shift);
-    else
+    } else {
         c = scancode_to_ascii(scancode, qwerty);
+    }
     
     switch (scancode) {
         case SC_CTRL_LEFT_PRESS: ctrl_pressed = true; return;
@@ -49,18 +51,30 @@ void    keyboard_handler(void) {
         case SC_SHIFT_LEFT_PRESS: shift_pressed = true; return;
         case SC_SHIFT_LEFT_RELEASE: shift_pressed = false; return;
 
+        case SC_ALT_LEFT_PRESS: alt_pressed = true; return;
+        case SC_ALT_LEFT_RELEASED: alt_pressed = false; return;
+
         case SC_UP_ARROW: terminal_scroll_up(); return;
         case SC_DOWN_ARROW: terminal_scroll_down(); return;
     }
 
-    if (!c) 
+    if (!c) { 
         return;
+    }
     
     if (ctrl_pressed) {
         switch (c) {
             case '1': terminal_switch(0); return;
             case '2': terminal_switch(1); return;
             case '3': terminal_switch(2); return;
+        }
+        return;
+    }
+    if (alt_pressed)
+    {
+        switch (c) {
+            case '1': terminal_switch_color('b'); return;
+            case '2': terminal_switch_color('w'); return;
         }
         return;
     }

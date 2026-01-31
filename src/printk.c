@@ -1,5 +1,8 @@
 #include "printk.h"
 
+static const char hex_lower[] = "0123456789abcdef";
+static const char hex_upper[] = "0123456789ABCDEF";
+
 static void printk_putd(int value) {
     char buffer[12];
     int i = 0;
@@ -19,13 +22,34 @@ static void printk_putd(int value) {
         value /= 10;
     }
 
-    while (i--)
+    while (i--) {
         terminal_putchar(buffer[i]);
+    }
 }
 
+static void printk_putx(uint32_t value, const char *digits) {
+    char buf[9];
+    int i = 0;
+
+    if (value == 0) {
+        terminal_putchar('0');
+        return;
+    }
+
+    while (value > 0) {
+        buf[i++] = digits[value & 0xF];
+        value >>= 4;
+    }
+
+    while (i--)
+        terminal_putchar(buf[i]);
+}
+
+
 static void printk_puts(const char *s) {
-    while (*s)
+    while (*s) {
         terminal_putchar(*s++);
+    }
 }
 
 void printk(const char *fmt, ...)
@@ -38,28 +62,26 @@ void printk(const char *fmt, ...)
             fmt++;
 
             switch (*fmt) {
-                case 's': {
-                    char *s = va_arg(args, char *);
-                    printk_puts(s);
+                case 's':
+                    printk_puts(va_arg(args, char *));
                     break;
-                }
-                case 'd': {
-                    int d = va_arg(args, int);
-                    printk_putd(d);
+
+                case 'd':
+                    printk_putd(va_arg(args, int));
                     break;
-                }
-                case 'c': {
-                    char c = (char)va_arg(args, int);
-                    terminal_putchar(c);
+
+                case 'x':
+                    printk_putx(va_arg(args, uint32_t), hex_lower);
                     break;
-                }
-                case '%': {
+
+                case 'X':
+                    printk_putx(va_arg(args, uint32_t), hex_upper);
+                    break;
+                case '%':
                     terminal_putchar('%');
                     break;
-                }
             }
-        }
-        else {
+        } else {
             terminal_putchar(*fmt);
         }
         fmt++;

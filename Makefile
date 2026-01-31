@@ -35,7 +35,7 @@ CC      = i686-elf-gcc
 AS      = i686-elf-as
 
 # ===== FLAGS =====
-CFLAGS  = -std=gnu99 -O2 -Wall -Wextra -Werror -fno-builtin -fno-stack-protector -ffreestanding -nostdlib -nodefaultlibs
+CFLAGS  = -std=gnu99 -O2 -fno-builtin -fno-stack-protector -ffreestanding -nostdlib -nodefaultlibs
 ASFLAGS =
 LDFLAGS = -T linker.ld -ffreestanding -O2 -nostdlib -nodefaultlibs
 LIBS    = -lgcc

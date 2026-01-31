@@ -1,6 +1,6 @@
 #include "cursor.h"
 
-void cursor_move(int x, int y) {
+void    cursor_move(int x, int y) {
     uint16_t pos = y * VGA_WIDTH + x;
 
     outb(VGA_CTRL_PORT, 0x0E);
@@ -8,4 +8,16 @@ void cursor_move(int x, int y) {
 
     outb(VGA_CTRL_PORT, 0x0F);
     outb(VGA_DATA_PORT, (uint8_t)(pos & 0xFF));
+}
+
+void    cursor_disable() {
+    outb(VGA_CTRL_PORT, 0x0A);
+    outb(VGA_DATA_PORT, 0x20);
+}
+
+void    cursor_enable() {
+    outb(VGA_CTRL_PORT, 0x0A);
+    outb(VGA_DATA_PORT, 14);
+    outb(VGA_CTRL_PORT, 0x0B);
+    outb(VGA_DATA_PORT, 15);
 }
