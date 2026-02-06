@@ -10,6 +10,7 @@ SRC_C   =	kernel.c \
 			cursor.c \
 
 SRC_S   =	boot.s \
+			gdt.s \
 
 # ===== DIRECTORIES =====
 SRC_DIR = src
@@ -41,13 +42,20 @@ LDFLAGS = -T linker.ld -ffreestanding -O2 -nostdlib -nodefaultlibs
 LIBS    = -lgcc
 
 # ===== RULES =====
-all: $(OBJ_DIR) $(DEP_DIR) $(NAME)
+all: $(OBJ_DIR) $(DEP_DIR) iso
 
 $(NAME): $(OBJ)
 	$(CC) $(LDFLAGS) $^ -o $@ $(LIBS)
 
-qemu: $(NAME)
-	qemu-system-i386 -kernel kfs
+iso: $(NAME)
+	rm -rf isodir
+	mkdir -p isodir/boot/grub
+	cp $(NAME) isodir/boot/$(NAME)
+	cp grub.cfg isodir/boot/grub/grub.cfg
+	grub-mkrescue -o $(NAME).iso isodir
+
+qemu:
+	qemu-system-i386 -cdrom $(NAME).iso
 
 $(OBJ_DIR)%.o: %.c
 	@mkdir -p $(OBJ_DIR)$(dir $<)
@@ -59,11 +67,13 @@ $(OBJ_DIR)%.o: %.s
 	$(AS) $(ASFLAGS) $< -o $@
 
 # ===== CLEAN =====
-clean: clean_dep clean_obj
+clean: clean_dep clean_obj clean_obj_iso
 
-fclean: clean clean_bin
+cclean: clean clean_bin
 
-re: fclean all
+fclean: clean clean_bin clean_iso
+
+re: fclean clean_iso all
 
 clean_dep:
 	rm -rf $(DEP_DIR)
@@ -71,8 +81,14 @@ clean_dep:
 clean_obj:
 	rm -rf $(OBJ_DIR)
 
+clean_obj_iso:
+	rm -rf isodir
+
 clean_bin:
 	rm -f $(NAME)
+
+clean_iso:
+	rm -rf $(NAME).iso
 
 # ===== DEPS =====
 
