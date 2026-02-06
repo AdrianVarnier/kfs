@@ -8,9 +8,10 @@ SRC_C   =	kernel.c \
 			keyboard.c \
 			printk.c \
 			cursor.c \
+			gdt.c \
 
 SRC_S   =	boot.s \
-			gdt.s \
+			gdt_flush.s \
 
 # ===== DIRECTORIES =====
 SRC_DIR = src
