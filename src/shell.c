@@ -19,6 +19,8 @@ static void shell_execute() {
         printk("%s\n", "  help: show available command");
         printk("%s\n", "  shutdown: poweroff the machine");
         printk("%s\n", "  reboot: restart the machine");
+        printk("%s\n", "  dumpstack: print stack");
+        printk("%s\n", "  gdtaddr: print GDT address");
         return ;
     }
 
