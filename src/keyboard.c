@@ -78,5 +78,5 @@ void    keyboard_handler(void) {
         }
         return;
     }
-    terminal_putchar(c);
+    shell_handle_char(c);
 }

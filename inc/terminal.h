@@ -9,6 +9,7 @@
 #include "cursor.h"
 #include "io.h"
 #include "utils.h"
+#include "shell.h"
 
 #define MAX_TERMINALS   3
 #define MAX_LINES       1024
@@ -27,8 +28,6 @@ typedef struct terminal {
 
 void    terminal_init(void);
 void    terminal_putchar(char c);
-void    terminal_write(const char* data, size_t size);
-void    terminal_write_str(const char* data);
 void    terminal_scroll_up(void);
 void    terminal_scroll_down(void);
 void    terminal_switch(int index);

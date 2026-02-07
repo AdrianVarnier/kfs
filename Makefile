@@ -9,6 +9,8 @@ SRC_C   =	kernel.c \
 			printk.c \
 			cursor.c \
 			gdt.c \
+			shell.c \
+			cmd.c \
 
 SRC_S   =	boot.s \
 			gdt_flush.s \
@@ -55,7 +57,7 @@ iso: $(NAME)
 	cp grub.cfg isodir/boot/grub/grub.cfg
 	grub-mkrescue -o $(NAME).iso isodir
 
-qemu:
+start:
 	qemu-system-i386 -cdrom $(NAME).iso
 
 $(OBJ_DIR)%.o: %.c

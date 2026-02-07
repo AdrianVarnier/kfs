@@ -73,6 +73,14 @@ static void terminal_newline_handler(void) {
     t->change = true;
 }
 
+static void terminal_backspace_handler(void) {
+    terminal_t *t = current_terminal();
+
+    int newest_line = (t->head + t->total_lines - 1) % MAX_LINES;
+    t->buffer[newest_line][t->cursor_x - 1] = ' ';
+    t->cursor_x--;
+}
+
 void terminal_init(void) {
     for (int i = 0; i < MAX_TERMINALS; i++) {
         terminal_t* t = &terminals[i];
@@ -87,7 +95,10 @@ void terminal_init(void) {
         for (int j = 0; j < VGA_HEIGHT; j++) {
             clear_line(t->buffer[j]);
         }
+        active_terminal = i;
+        shell_init(i);
     }
+    active_terminal = 0;
 }
 
 void terminal_putchar(char c) {
@@ -100,6 +111,8 @@ void terminal_putchar(char c) {
 
     if (c == '\n') {
         terminal_newline_handler();
+    } else if (c == '\b') {
+        terminal_backspace_handler();
     } else {
         int logical_line = t->view_offset + t->cursor_y;
         int offset = (t->total_lines > MAX_LINES) ? t->total_lines - MAX_LINES : 0;
@@ -112,16 +125,6 @@ void terminal_putchar(char c) {
             terminal_newline_handler();
     }
     t->change = true;
-}
-
-void terminal_write(const char* data, size_t size) {
-    for (size_t i = 0; i < size; i++) {
-        terminal_putchar(data[i]);
-    }
-}
-
-void terminal_write_str(const char* data) {
-    terminal_write(data, strlen(data));
 }
 
 void terminal_scroll_up(void) {
@@ -156,6 +159,7 @@ void terminal_switch(int index) {
 
     active_terminal = index;
     terminal_t* t = current_terminal();
+    shell_switch(index);
 
     if (t->total_lines > VGA_HEIGHT) {
         t->view_offset = t->total_lines - VGA_HEIGHT;
