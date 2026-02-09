@@ -10,7 +10,7 @@ SECTIONS
         KEEP(*(.multiboot))
     }
 
-    .gdt 0x00000800 :
+    .gdt 0x00000800:
     {
         KEEP(*(.gdt))
     }

@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   printk.c                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: avarnier <avarnier@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/02/09 18:13:43 by avarnier          #+#    #+#             */
+/*   Updated: 2026/02/09 18:13:43 by avarnier         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "printk.h"
 
 static const char hex_lower[] = "0123456789abcdef";
@@ -45,6 +57,25 @@ static void printk_putx(uint32_t value, const char *digits) {
         terminal_putchar(buf[i]);
 }
 
+static void printk_putaddr(uint32_t value, const char *digits) {
+    char buf[10];
+    int i = 0;
+
+    buf[8] = 'x';
+    buf[9] = '0';
+    for (int j = 0; j < 8; j++) {
+        buf[j] = '0';
+    }
+
+    while (value > 0) {
+        buf[i++] = digits[value & 0xF];
+        value >>= 4;
+    }
+
+    i = 10;
+    while (i--)
+        terminal_putchar(buf[i]);
+}
 
 static void printk_puts(const char *s) {
     while (*s) {
@@ -76,6 +107,9 @@ void printk(const char *fmt, ...)
 
                 case 'X':
                     printk_putx(va_arg(args, uint32_t), hex_upper);
+                    break;
+                case 'a':
+                    printk_putaddr(va_arg(args, uint32_t), hex_lower);
                     break;
                 case '%':
                     terminal_putchar('%');
